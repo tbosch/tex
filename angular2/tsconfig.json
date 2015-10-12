@@ -1,0 +1,14 @@
+{
+  "version": "1.5.0",
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es5",
+    "module": "commonjs"
+  },
+  "files": [
+    "app.ts",
+    "shim.d.ts",
+    "tsd_typings/tsd.d.ts"
+  ]
+}
