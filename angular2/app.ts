@@ -1,75 +1,69 @@
-import {bootstrap, ElementRef, Component, Directive, View, Injectable, NgModel, CORE_DIRECTIVES,FORM_DIRECTIVES, Input, ViewChild, QueryList, ContentChildren} from 'angular2/angular2';
+import {bootstrap, ElementRef, Component, Directive, View, Injectable, NgModel, CORE_DIRECTIVES,FORM_DIRECTIVES, Input, ViewChild, QueryList, ContentChildren, ContentChild, TemplateRef, NgForm} from 'angular2/angular2';
 
-@Component({
-	selector: 'talk'
-})
-@View({
-	template: `
-    <a href="/talks/{{id}}" [class.selected]="selected">
-      <ng-content select="short-title"></ng-content> by {{speaker}}
-    </a>
-    <p><ng-content select="description"></ng-content></p>
-  `
-})
-class Talk {
-	@Input() id:string;
-	@Input() speaker:string;
-	selected: boolean;
-
-	select(state:boolean) {
-		this.selected = state;
-	}
-}
+import * as n from "@reactivex/rxjs/dist/cjs/Rx"; // this should not be needed
+var q = n;
 
 @Component({selector: 'conf-talks'})
 @View({
-	directives: [FORM_DIRECTIVES],
+	directives: [CORE_DIRECTIVES, FORM_DIRECTIVES],
 	template: `
-    Speaker filter: <input #speaker="form" ng-model required>
+	  <form>
+      Speaker: <input ng-control="speaker" required>
+      Title: <input ng-control="title" required>
+	  </form>
     <ul>
-      <ng-content></ng-content>
+      <template ng-for [ng-for-of]="talks" [ng-for-template]="itemTmpl"/>
     </ul>
   `
 })
 class ConfTalks {
-	@ContentChildren(Talk) talks;
-	@ViewChild("speaker") speaker;
+  @Input() talks;
+	@ContentChild(<any>TemplateRef) itemTmpl; // typing here are not correct
+	@ViewChild(NgForm) form;
 
 	afterViewInit() {
-		var speakerChanges = this.speaker.control.valueChanges._subject;
-		speakerChanges.
-    //filter(_ => this.speaker.valid).
-		//debounce(500).
-		subscribe(value => this.selectFirstTalkMatchingFilters(value));
+		(<any>this.form.control.valueChanges).toRx().
+    filter(_ => this.form.valid).
+		throttle(500).
+		subscribe(value => this.selectTalk(value));
 	}
 
-	selectFirstTalkMatchingFilters(speaker:string) {
-		var t = this.talks._results;
-		t.forEach(t => t.select(false));
+	selectTalk(filters) {
+    console.log("here");
+		this.talks.forEach(t => t.selected = false);
 
-		var matchingTalks = t.filter(t => t.speaker.indexOf(speaker) > -1);
+    var matchingTalks = this.talks.filter(t => {
+      var speakerMatched = t.speaker.indexOf(filters.speaker) > -1;
+      var titleMatched = t.title.indexOf(filters.title) > -1;
+      return (speakerMatched || !filters.speaker) && (titleMatched || !filters.title);
+    });
+
 		if (matchingTalks.length > 0) {
-			matchingTalks[0].select(true);
+			matchingTalks[0].selected = true;
 		}
 	}
 }
 
 @Component({selector:'ng-demo'})
 @View({
-	directives: [ConfTalks, Talk, CORE_DIRECTIVES],
+	directives: [ConfTalks, CORE_DIRECTIVES],
 	template: `
-    <conf-talks>
-      <talk id="1" speaker="Igor Minar">
-        <short-title>Meditation</short-title>
-        <description>Meditation <b>Description</b></description>
-      </talk>
-
-      <talk id="2" speaker="Jeff Cross">
-        <short-title>Data</short-title>
-        <description>Super Http</description>
-      </talk>
+    <conf-talks [talks]="data">
+      <template var-talk>
+        <li>
+          <a href="/talks/{{talk.id}}" [class.selected]="talk.selected">
+            {{talk.title}} by {{talk.speaker}}
+          </a>
+          <p>{{talk.description}}</p>
+        </li>
+			</template>
     </conf-talks>
   `
 })
-class App {}
+class App {
+  data = [
+    {id: 1, title: 'Data Fetching', speaker: 'Jeff Cross', description: 'Data Description'},
+    {id: 2, title: 'Meditate', speaker: 'Igor Minar', description: 'Meditation'}
+  ];
+}
 bootstrap(App);

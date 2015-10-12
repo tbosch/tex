@@ -1,143 +1,142 @@
 var m = angular.module("demo", []);
 
-class Talk {
-  select(value) {
-		this.selected = value;
-	}
-
-  add() {
-    this.confTalks.addTalk(this);
+m.directive("templateRef", () => ({
+  restrict: 'A',
+  multiElement: true,
+  transclude: "element",
+  require: '^confTalks',
+  terminal: true,
+  $$tlb: true,
+  scope: {
+    'name':'@'
+  },
+  compile: (element, attrs) => {
+    return ($scope, el, attrs, ctrl, transclude) => {
+      ctrl.addTemplate($scope.name, (talk) => {
+        var scope = $scope.$new(true);
+        scope.talk = talk;
+        transclude(scope, (clone) => {
+          el[0].parentNode.appendChild(clone[0]);
+        });
+      })
+    };
   }
-
-  // this is just for sorting
-  remove() {
-    this.confTalks.removeTalk(this);
-  }
-
-  moveTalk(newIndex) {
-    this.confTalks.move(this, newIndex);
-  }
-}
-
-/**
- * Notes to Tobias
- *
- * I do not actually project the light dom properly here. Please update the examples to do that in some form.
- */
-m.directive('talk', () => ({
-	template: `
-    <a href="/talks/{{id}}" ng-class="\{selected: ctrl.selected\}">
-       Speaker: {{ctrl.speaker}}
-    </a>
-    <div ng-transclude></div>
-	`,
-	require: '^confTalks',
-	restrict: 'E',
-	transclude: true,
-	scope: {
-		id: "@",
-		speaker: "@"
-	},
-	controller: Talk,
-	controllerAs: 'ctrl',
-	link: (scope, element, attrs, confTalksCtrl) => {
-		confTalksCtrl.addTalk(scope.ctrl);
-
-    scope.ctrl.confTalks = confTalksCtrl;
-		scope.ctrl.id = scope.id;
-		scope.ctrl.speaker = scope.speaker;
-    scope.ctrl.add();
-
-    scope.$on("destroy", () => {
-      scope.ctrl.remove();
-    });
-	}
 }));
 
 
 class ConfTalks {
-	constructor($timeout) {
-		this.talks = [];
-		this.filters = null;
+  constructor($timeout) {
+    this.templates = {};
+    this._speakerFilter = null;
+    this._titleFilter = null;
+    this.filters = null;
     this.timeout = $timeout;
-		this._speakerFilter = "";
-	}
-
-	addTalk(talk) {
-		this.talks.push(talk);
-	}
-
-  // this is just for sorting
-  removeTalk(talk) {
-    this.talks.splice(this.talks.indexOf(talk), 1);
   }
 
-  moveTalk(talk, newIndex) {
-    this.talks.splice(this.talks.indexOf(talk), 1);
-    this.talks.splice(newIndex, 0, talk);
+  set talks(talks) {
+    this._talks = talks;
   }
 
-	set speakerFilter(value) {
-		this._speakerFilter = value;
-		this.debounceSelectFirstTalkMatchingFilters(value);
-	}
+  addTemplate(templateName, fn) {
+    this.templates[templateName] = fn;
+    this.rerender();
+  }
 
-	get speakerFilter() {
-		return this._speakerFilter;
-	}
+  rerender() {
+    if (!this.templates['row-template']) {
+      throw new Error("Row template must be specified");
+    }
+    this._talks.forEach(t => this.templates['row-template'](t));
+  }
 
-	debounceSelectFirstTalkMatchingFilters(value) {
-		if (this.filters.$valid) {
-			clearTimeout(this.timer);
-			this.timer = this.timeout(() => {
-				this.selectFirstTalkMatchingSpeaker(value);
-			}, 500);
-		}
-	}
+  set speakerFilter(value) {
+    this._speakerFilter = value;
+    this.selectAfterHalfASecond();
+  }
 
-  selectFirstTalkMatchingSpeaker(speaker) {
-    var t = this.talks;
-    t.forEach(t => t.select(false));
+  get speakerFilter() {
+    return this._speakerFilter;
+  }
 
-    var matchingTalks = t.filter(t => t.speaker.indexOf(speaker) > -1);
+  set titleFilter(value) {
+    this._titleFilter = value;
+    this.selectAfterHalfASecond();
+  }
+
+  get titleFilter() {
+    return this._titleFilter;
+  }
+
+  selectAfterHalfASecond(value) {
+    clearTimeout(this.timer);
+    if (this.filters.$valid) {
+      this.timer = this.timeout(() => {
+        this.selectTalk(value);
+      }, 500);
+    }
+  }
+
+  selectTalk() {
+    this._talks.forEach(t => t.selected = false);
+
+    var matchingTalks = this._talks.filter(t => {
+      var speakerMatched = t.speaker.indexOf(this.speakerFilter) > -1;
+      var titleMatched = t.title.indexOf(this.titleFilter) > -1;
+      return (speakerMatched || !this.speakerFilter) && (titleMatched || !this.titleFilter);
+    });
+
     if (matchingTalks.length > 0) {
-      matchingTalks[0].select(true);
+      matchingTalks[0].selected = true;
     }
   }
 }
 
-m.directive('confTalks', () => ({
-	template: `
-		<form name="ctrl.filters">
-			Speaker filter: <input ng-model="ctrl.speakerFilter" required>
+m.directive("confTalks", () => ({
+  template: `
+    <form name="ctrl.filters">
+			Speaker: <input ng-model="ctrl.speakerFilter" minlength="3">
+			Title: <input ng-model="ctrl.titleFilter" minlength="3">
 		</form>
     <ul>
-      <div ng-transclude></div>
+      <ng-transclude></ng-transclude>
     </ul>
 	`,
-	restrict: 'E',
-	transclude: true,
-	controller: ConfTalks,
-	controllerAs: 'ctrl'
+  restrict: 'E',
+  transclude: true,
+  controller: ConfTalks,
+  controllerAs: 'ctrl',
+  scope: {
+    talks: '='
+  },
+  bindToController: true
 }));
 
+class App {
+  constructor() {
+    this.data = [
+      {id: 1, title: 'Data Fetching', speaker: 'Jeff Cross', description: 'Data Description'},
+      {id: 2, title: 'Meditate', speaker: 'Igor Minar', description: 'Meditation'}
+    ]
+  }
+}
 
 m.directive('content', () => ({
 	template: `
-		<conf-talks>
-			<talk id="1" speaker="Igor Minar">
-				<short-title>Meditation</short-title>
-				<description>Meditation <b>Description</b></description>
-			</talk>
-
-			<talk id="2" speaker="Jeff Cross">
-				<short-title>Data</short-title>
-				<description>Super Http</description>
-			</talk>
+		<conf-talks talks="ctrl.data">
+			<div template-ref name="row-template">
+        <li>
+          <a href="/talks/{{talk.id}}" ng-class="{selected: talk.selected}">
+            {{talk.title}} by {{talk.speaker}}
+          </a>
+          <p>{{talk.description}}</p>
+        </li>
+			</div>
 		</conf-talks>
 	`,
 	scope: {},
-	restrict: 'E'
+	restrict: 'E',
+  controller: App,
+  controllerAs: 'ctrl'
 }));
 
 var el = document.querySelector("#content");
