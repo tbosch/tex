@@ -1,5 +1,7 @@
 import {bootstrap, Component, CORE_DIRECTIVES, FORM_DIRECTIVES, Input, ViewChild, ContentChild, TemplateRef, NgForm} from 'angular2/angular2';
 
+import {Tabs, TabHeader, TabBody} from './tabs';
+
 import * as n from "@reactivex/rxjs/dist/cjs/Rx"; // this should not be needed
 var q = n;
 
@@ -46,18 +48,30 @@ class ConfTalks {
 
 @Component({
   selector:'ng-demo',
-	directives: [ConfTalks, CORE_DIRECTIVES],
+	directives: [ConfTalks, Tabs, TabBody, TabHeader, CORE_DIRECTIVES],
 	template: `
-    <conf-talks [talks]="data">
-      <template var-talk>
-        <li>
-          <a href="/talks/{{talk.id}}" [class.selected]="talk.selected">
-            {{talk.title}} by {{talk.speaker}}
-          </a>
-          <p>{{talk.description}}</p>
-        </li>
-			</template>
-    </conf-talks>
+    <tabs>
+			<tab-header>Talks</tab-header>
+			<tab-body>
+        <conf-talks [talks]="data">
+          <template var-talk>
+            <li>
+              <a href="/talks/{{talk.id}}" [class.selected]="talk.selected">
+                {{talk.title}} by {{talk.speaker}}
+              </a>
+              <p>{{talk.description}}</p>
+            </li>
+          </template>
+        </conf-talks>
+      </tab-body>
+			<tab-header>Speakers</tab-header>
+			<tab-body>
+				<ul>
+					<li>Jeff Cross</li>
+					<li>Igor Minuar</li>
+				</ul>
+			</tab-body>
+    </tabs>
   `
 })
 class App {

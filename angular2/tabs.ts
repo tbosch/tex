@@ -1,94 +1,73 @@
-import {bootstrap, ElementRef, Component, Directive, View, Injectable, NgModel, CORE_DIRECTIVES,FORM_DIRECTIVES, Input, ViewChild, QueryList, ContentChildren, NgFor} from 'angular2/angular2';
+import {Component, QueryList, ContentChildren, Inject, forwardRef} from 'angular2/angular2';
 
 @Component({
-	selector: 'tab',
+	selector: 'tab-header',
 	host: {
-		'[class.hidden]': '!selected'
-	}
+		'(click)': 'updateTabsSelection()',
+		'[class.selected]': 'selected'
+	},
+	template: `<ng-content></ng-content>`
 })
-@View({
-	styles: [
-		':host.hidden { display: none; }',
-		'.header { background-color: grey}',
-	],
-	template: `
-		<div class="header">
-			<ng-content select="tab-header"></ng-content>
-		</div>
-		<div class="body">
-			<ng-content select="tab-body"></ng-content>
-		</div>
-  `
-})
-class Tab {
-	@Input() title;
-	selected = false;
+export class TabHeader {
+	selected:boolean = false;
+	constructor(@Inject(forwardRef(() => Tabs)) private tabs) {}
 
-	select(selected) {
+	updateTabsSelection() {
+		this.tabs.updateSelection(this);
+	}
+
+	updateSelection(selected:boolean) {
 		this.selected = selected;
 	}
 }
 
 @Component({
-	selector: 'tabs'
+	selector: 'tab-body',
+	host: {
+		'[class.selected]': 'selected'
+	},
+	template: `<ng-content></ng-content>`
 })
-@View({
-	styles: [
-		'.btn { border: 1px solid black; padding: 3px }',
-		'.btn.active {background-color: red}',
-		'.col { display: inline-block }',
-	],
+export class TabBody {
+	selected: boolean = false;
+
+	updateSelection(selected:boolean) {
+		this.selected = selected;
+	}
+}
+
+@Component({
+	selector: 'tabs',
 	template: `
-	  <div class="col">
-    	<div *ng-for="#tab of tabs;#i=index" (click)="selectTabByIndex(i)" class="btn" [class.active]="tab.selected">{{tab.title}}</div>
+	  <div class="tab-headers">
+    	<ng-content select="tab-header"></ng-content>
 		</div>
-		<div class="col">
-			<ng-content></ng-content>
+		<div class="tab-bodies">
+    	<ng-content select="tab-body"></ng-content>
 	  </div>
-  `,
-	directives: [NgFor]
+  `
 })
-class Tabs {
-	@ContentChildren(Tab) tabs;
+export class Tabs {
+	@ContentChildren(TabHeader) headers: QueryList<TabHeader>;
+	@ContentChildren(TabBody) bodies: QueryList<TabBody>;
 
 	afterContentInit() {
-		this.selectTabByIndex(0);
+		this.updateSelection(this.headers.first);
 	}
 
-	selectTabByIndex(selectedIndex:number) {
-		var i = 0;
-		this.tabs.map( (tab) => {
-			tab.select(i === selectedIndex);
-			i++;
+	updateSelection(selectedHeader:TabHeader) {
+		var headerArr = toArray(this.headers);
+		var bodyArr = toArray(this.bodies);
+		headerArr.forEach( (header, index) => {
+			var selected = header === selectedHeader;
+			header.updateSelection(selected);
+			bodyArr[index].updateSelection(selected);
 		});
 	}
 }
 
-@Component({selector:'ng-demo'})
-@View({
-	directives: [Tabs, Tab, CORE_DIRECTIVES],
-	template: `
-    <tabs>
-      <tab title="Speakers">
-        <tab-header>Speakers</tab-header>
-        <tab-body>
-					<ul>
-					  <li>Jeff Cross</li>
-						<li>Igor Minuar</li>
-					</ul>
-				</tab-body>
-      </tab>
-      <tab title="Talks">
-        <tab-header>Talks</tab-header>
-        <tab-body>
-					<ul>
-					  <li>All about data</li>
-						<li>Find your center</li>
-					</ul>
-				</tab-body>
-      </tab>
-    </tabs>
-  `
-})
-class App {}
-bootstrap(App);
+function toArray<T>(query:QueryList<T>):T[] {
+	var result = [];
+	query.map( value => result.push(value) );
+	return result;
+}
