@@ -61,8 +61,11 @@ class ConfTalks {
 })
 class App {
   data = [
-    {id: 1, title: 'Data Fetching', speaker: 'Jeff Cross', description: 'Data Description'},
-    {id: 2, title: 'Meditate', speaker: 'Igor Minar', description: 'Meditation'}
+    {id: 1, title: 'Routing in Eleven Dimensions with Component Router', speaker: 'Brian Ford', description: 'Component Router is a futuristic routing system for Angular 1 and 2 that may or may not have been constructed from recovered extraterrestrial technology. We’ll show how it helps organize your application, explain the linking DSL, and show how to make use of lifecycle hooks. Then we’ll talk about advanced features and auxiliary routing.'},
+
+    {id: 2, title: 'Testing strategies with Angular 2', speaker: 'Julie Ralph', description: 'Angular loves testability, and Angular 2 will continue to make it easy to write great test suites so that you’re confident in your site. Learn how to use karma and other tools to set up and debug tests, see how the Angular team creates their test suite, and meet new test helpers just for Angular 2 components.'},
+
+    {id: 3, title: 'Building the Best Components', speaker: 'Jeremy Elbourn', description: 'The component is the new atomic unit of an Angular 2 application. So what makes a good component? This talk will explore how Angular 2 components are different from the directives you’re used to and provide some practical guidance on building them. We’ll also look at different types of tests you can write to guard against all kinds of regressions.'}
   ];
 }
 bootstrap(App);
