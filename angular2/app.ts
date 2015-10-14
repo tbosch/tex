@@ -1,15 +1,15 @@
-import {bootstrap, ElementRef, Component, Directive, View, Injectable, NgModel, CORE_DIRECTIVES,FORM_DIRECTIVES, Input, ViewChild, QueryList, ContentChildren, ContentChild, TemplateRef, NgForm} from 'angular2/angular2';
+import {bootstrap, Component, CORE_DIRECTIVES, FORM_DIRECTIVES, Input, ViewChild, ContentChild, TemplateRef, NgForm} from 'angular2/angular2';
 
 import * as n from "@reactivex/rxjs/dist/cjs/Rx"; // this should not be needed
 var q = n;
 
-@Component({selector: 'conf-talks'})
-@View({
+@Component({
+	selector: 'conf-talks',
 	directives: [CORE_DIRECTIVES, FORM_DIRECTIVES],
 	template: `
 	  <form>
-      Speaker: <input ng-control="speaker" required>
-      Title: <input ng-control="title" required>
+      Speaker: <input ng-control="speaker" minlength="3">
+      Title: <input ng-control="title" minlength="3">
 	  </form>
     <ul>
       <template ng-for [ng-for-of]="talks" [ng-for-template]="itemTmpl"/>
@@ -18,18 +18,17 @@ var q = n;
 })
 class ConfTalks {
   @Input() talks;
-	@ContentChild(<any>TemplateRef) itemTmpl; // typing here are not correct
+	@ContentChild(TemplateRef) itemTmpl; // typing here are not correct
 	@ViewChild(NgForm) form;
 
 	afterViewInit() {
 		(<any>this.form.control.valueChanges).toRx().
-    filter(_ => this.form.valid).
-		throttle(500).
+    //filter(_ => this.form.valid).
+    //throttle(500).
 		subscribe(value => this.selectTalk(value));
 	}
 
 	selectTalk(filters) {
-    console.log("here");
 		this.talks.forEach(t => t.selected = false);
 
     var matchingTalks = this.talks.filter(t => {
@@ -44,8 +43,8 @@ class ConfTalks {
 	}
 }
 
-@Component({selector:'ng-demo'})
-@View({
+@Component({
+  selector:'ng-demo',
 	directives: [ConfTalks, CORE_DIRECTIVES],
 	template: `
     <conf-talks [talks]="data">

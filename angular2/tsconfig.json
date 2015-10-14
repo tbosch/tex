@@ -10,7 +10,6 @@
   "files": [
     "app.ts",
     "tabs.ts",
-    "shim.d.ts",
-    "tsd_typings/tsd.d.ts"
+    "shim.d.ts"
   ]
 }
