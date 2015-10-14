@@ -12,11 +12,17 @@ m.directive("templateRef", () => ({
   },
   compile: (element, attrs) => {
     return ($scope, el, attrs, ctrl, transclude) => {
-      ctrl.addTemplate($scope.name, (talk) => {
-        var scope = $scope.$new(true);
-        scope.talk = talk;
-        transclude(scope, (clone) => {
-          el[0].parentNode.appendChild(clone[0]);
+      var parent = el[0].parentNode;
+      // this is not performant
+      // doing it "the right way" will be a lot more involved
+      ctrl.addTemplate($scope.name, (items) => {
+        parent.innerHTML = '';
+        items.forEach(t => {
+          var scope = $scope.$new(true);
+          scope.talk = t;
+          transclude(scope, (clone) => {
+            parent.appendChild(clone[0]);
+          });
         });
       })
     };
@@ -35,6 +41,7 @@ class ConfTalks {
 
   set talks(talks) {
     this._talks = talks;
+    this.rerender();
   }
 
   addTemplate(templateName, fn) {
@@ -43,10 +50,11 @@ class ConfTalks {
   }
 
   rerender() {
+    if (!this.templates) return;
     if (!this.templates['row-template']) {
       throw new Error("Row template must be specified");
     }
-    this._talks.forEach(t => this.templates['row-template'](t));
+    this.templates['row-template'](this._talks);
   }
 
   set speakerFilter(value) {
@@ -116,7 +124,7 @@ class App {
     this.data = [
       {id: 1, title: 'Data Fetching', speaker: 'Jeff Cross', description: 'Data Description'},
       {id: 2, title: 'Meditate', speaker: 'Igor Minar', description: 'Meditation'}
-    ]
+    ];
   }
 }
 
